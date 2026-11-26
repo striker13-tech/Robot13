@@ -3,8 +3,8 @@ import io
 from PIL import Image, ImageDraw
 
 st.set_page_config(page_title='WhiteboardAI', page_icon='W', layout='wide')
-st.title('WhiteboardAI - Moving + Voice')
-st.caption('Animated Whiteboard + Real Voice')
+st.title('WhiteboardAI - Topic Drawing + Voice')
+st.caption('Real Drawings Per Topic + Real Voice')
 
 topic = st.text_input('Topic', value='How People Become Rich')
 style = st.selectbox('Style', ['For Kids - Simple', 'For TikTok - Cool', 'For School - Formal'])
@@ -21,51 +21,60 @@ script_input = st.text_area('Script', height=100)
 prompt_input = st.text_area('Prompt', height=60)
 btn = st.button('GENERATE!', use_container_width=True, type='primary')
 
-def make_frame(word, idx, all_words):
+def draw_scene(idx, title, scene_text):
     w = 700
-    h = 400
+    h = 480
     img = Image.new('RGB', (w, h), color='white')
     d = ImageDraw.Draw(img)
     d.rectangle([0, 0, w, h], outline='black', width=4)
-    d.text((20, 20), 'How People Become Rich', fill='black')
-    d.line([(20, 50), (680, 50)], fill='orange', width=4)
-    shown = ' '.join(all_words[:idx+1])
-    d.text((20, 70), shown[:60], fill='black')
-    d.text((20, 90), shown[60:120], fill='black')
-    hx = 100 + (idx % 5) * 50
-    hy = 180
+    d.text((20, 15), title.upper(), fill='black')
+    d.line([(20, 45), (680, 45)], fill='orange', width=4)
+    d.text((20, 60), scene_text[:70], fill='black')
+    d.text((20, 80), scene_text[70:140], fill='black')
+    hx = 150
+    hy = 220
     d.ellipse([hx-20, hy-20, hx+20, hy+20], outline='black', width=3)
     d.line([(hx, hy+20), (hx, hy+90)], fill='black', width=3)
     d.line([(hx, hy+40), (hx-30, hy+60)], fill='black', width=3)
     d.line([(hx, hy+40), (hx+30, hy+60)], fill='black', width=3)
     d.line([(hx, hy+90), (hx-20, hy+130)], fill='black', width=3)
     d.line([(hx, hy+90), (hx+20, hy+130)], fill='black', width=3)
-    d.text((hx+50, hy+40), '>', fill='red')
-    low = word.lower()
-    label = 'KEEP GOING!'
-    icon = 'STAR'
-    if 'rich' in low or 'money' in low:
-        label = 'MONEY GROWS!'
-        icon = 'MONEY'
-    if 'save' in low:
-        label = 'SAVE FIRST!'
-        icon = 'PIGGY'
-    if 'learn' in low or 'book' in low:
-        label = 'LEARN DAILY!'
-        icon = 'BOOK'
-    if 'work' in low or 'hard' in low:
-        label = 'WORK HARD!'
-        icon = 'STRONG'
-    if 'business' in low:
-        label = 'BUSINESS!'
-        icon = 'SHOP'
-    if 'help' in low or 'people' in low:
-        label = 'HELP OTHERS!'
-        icon = 'HEART'
-    d.text((450, 170), icon, fill='black')
-    d.text((450, 210), label, fill='black')
-    d.text((20, 350), 'Tip: Save - Learn - Work - Invest', fill='gray')
-    d.text((20, 330), 'Frame ' + str(idx+1) + ' / ' + str(len(all_words)), fill='green')
+    d.text((hx+50, hy+30), '>', fill='red')
+    # DRAWING PER SCENE - TOPIC DRAWING
+    if idx == 0:
+        # PIGGY BANK
+        d.ellipse([450, 200, 620, 300], outline='black', width=3)
+        d.ellipse([460, 210, 490, 240], outline='black', width=2)
+        d.text((500, 240), 'PIGGY BANK', fill='black')
+        d.text((450, 320), 'SAVE MONEY FIRST!', fill='black')
+        d.text((450, 150), '$ $ $', fill='green')
+    elif idx == 1:
+        # BOOK
+        d.rectangle([450, 180, 620, 300], outline='black', width=3)
+        d.line([(535, 180), (535, 300)], fill='black', width=2)
+        d.text((470, 230), 'BOOK', fill='black')
+        d.text((550, 230), 'LEARN', fill='black')
+        d.text((450, 320), 'LEARN EVERY DAY!', fill='black')
+    elif idx == 2:
+        # HOUSE + SUN
+        d.ellipse([580, 140, 640, 200], outline='orange', width=3)
+        d.rectangle([450, 220, 600, 320], outline='black', width=3)
+        d.polygon([(440, 220), (525, 160), (610, 220)], outline='black', width=3)
+        d.text((450, 340), 'WORK HARD - HOUSE!', fill='black')
+    elif idx == 3:
+        # MONEY BAG
+        d.ellipse([470, 200, 600, 320], outline='green', width=4)
+        d.text((510, 240), '$', fill='green')
+        d.text((450, 340), 'MONEY GROWS!', fill='black')
+        d.text((450, 150), 'RICH!', fill='green')
+    else:
+        # HEART - HELP OTHERS
+        d.ellipse([470, 200, 530, 260], outline='red', width=3)
+        d.ellipse([540, 200, 600, 260], outline='red', width=3)
+        d.polygon([(460, 240), (535, 330), (610, 240)], outline='red', width=3)
+        d.text((450, 350), 'HELP OTHERS!', fill='black')
+    d.text((20, 430), 'Tip: Save - Learn - Work - Invest - Help', fill='gray')
+    d.text((20, 410), 'Scene ' + str(idx+1) + ' / 5', fill='green')
     return img
 
 if btn:
@@ -87,18 +96,22 @@ if btn:
                 st.warning('You chose VIDEO but you have no script.')
             else:
                 video_script = final_script if gen_script else script_input
-                st.markdown('### YOUR MOVING VIDEO')
-                words = video_script.split(' ')
-                st.info('Wait 3 seconds - generating moving video...')
+                st.markdown('### YOUR MOVING VIDEO - TOPIC DRAWINGS')
+                scenes = []
+                scenes.append('First, they save money before they spend money.')
+                scenes.append('Second, they learn every day.')
+                scenes.append('Third, they work hard and they do not give up.')
+                scenes.append('Fourth, they make their money work for them.')
+                scenes.append('Fifth, they help other people.')
                 frames = []
-                for i, wd in enumerate(words):
-                    if i % 3 == 0:
-                        f = make_frame(wd, i, words)
+                for i, s in enumerate(scenes):
+                    for k in range(4):
+                        f = draw_scene(i, topic, s)
                         frames.append(f)
                 gif_buf = io.BytesIO()
-                frames[0].save(gif_buf, format='GIF', save_all=True, append_images=frames[1:], duration=600, loop=0)
+                frames[0].save(gif_buf, format='GIF', save_all=True, append_images=frames[1:], duration=700, loop=0)
                 gif_buf.seek(0)
-                st.image(gif_buf, use_container_width=True, caption='Your Whiteboard Video - Gumagalaw na!')
+                st.image(gif_buf, use_container_width=True, caption='Topic Video - Piggy, Book, House, Money, Heart!')
                 st.download_button('DOWNLOAD VIDEO GIF', data=gif_buf, file_name='WhiteboardAI-Video.gif', mime='image/gif')
                 st.markdown('### VOICE - Pindutin PLAY')
                 try:
@@ -109,8 +122,8 @@ if btn:
                     buf.seek(0)
                     st.audio(buf, format='audio/mp3')
                     st.download_button('DOWNLOAD VOICE MP3', data=buf, file_name='WhiteboardAI-Voice.mp3', mime='audio/mp3')
-                    st.success('Voice Generated! Press PLAY above!')
+                    st.success('Voice OK! Press PLAY!')
                 except Exception as e:
-                    st.error('Voice failed. Check requirements.txt has gTTS. Error: ' + str(e))
+                    st.error('Voice failed. Wala pa requirements.txt! Gawa ka ng requirements.txt tapos REBOOT! Error: ' + str(e))
         if not gen_script and not gen_prompt and not gen_video:
             st.warning('Please check at least one.')
