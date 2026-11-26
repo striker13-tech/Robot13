@@ -1,10 +1,10 @@
 import streamlit as st
 import io
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 st.set_page_config(page_title='WhiteboardAI', page_icon='W', layout='wide')
-st.title('WhiteboardAI - No Error Version')
-st.caption('Script + Prompt + Whiteboard + Voice - No HTML')
+st.title('WhiteboardAI - Moving + Voice')
+st.caption('Animated Whiteboard + Real Voice')
 
 topic = st.text_input('Topic', value='How People Become Rich')
 style = st.selectbox('Style', ['For Kids - Simple', 'For TikTok - Cool', 'For School - Formal'])
@@ -15,19 +15,13 @@ with c1:
 with c2:
     gen_prompt = st.checkbox('Generate PROMPT?', value=False)
 with c3:
-    gen_video = st.checkbox('Generate WHITEBOARD?', value=True)
-
-d1, d2 = st.columns(2)
-with d1:
-    voice_lang = st.selectbox('Voice', ['English - US', 'English - UK', 'Filipino'])
-with d2:
-    speed = st.selectbox('Speed', ['Normal', 'Slow'])
+    gen_video = st.checkbox('Generate VIDEO?', value=True)
 
 script_input = st.text_area('Script', height=100)
 prompt_input = st.text_area('Prompt', height=60)
 btn = st.button('GENERATE!', use_container_width=True, type='primary')
 
-def draw_whiteboard(word):
+def make_frame(word, idx, all_words):
     w = 700
     h = 400
     img = Image.new('RGB', (w, h), color='white')
@@ -35,15 +29,18 @@ def draw_whiteboard(word):
     d.rectangle([0, 0, w, h], outline='black', width=4)
     d.text((20, 20), 'How People Become Rich', fill='black')
     d.line([(20, 50), (680, 50)], fill='orange', width=4)
-    d.text((20, 70), 'Word: ' + word, fill='black')
-    hx = 150
-    hy = 150
+    shown = ' '.join(all_words[:idx+1])
+    d.text((20, 70), shown[:60], fill='black')
+    d.text((20, 90), shown[60:120], fill='black')
+    hx = 100 + (idx % 5) * 50
+    hy = 180
     d.ellipse([hx-20, hy-20, hx+20, hy+20], outline='black', width=3)
     d.line([(hx, hy+20), (hx, hy+90)], fill='black', width=3)
     d.line([(hx, hy+40), (hx-30, hy+60)], fill='black', width=3)
     d.line([(hx, hy+40), (hx+30, hy+60)], fill='black', width=3)
     d.line([(hx, hy+90), (hx-20, hy+130)], fill='black', width=3)
     d.line([(hx, hy+90), (hx+20, hy+130)], fill='black', width=3)
+    d.text((hx+50, hy+40), '>', fill='red')
     low = word.lower()
     label = 'KEEP GOING!'
     icon = 'STAR'
@@ -62,10 +59,13 @@ def draw_whiteboard(word):
     if 'business' in low:
         label = 'BUSINESS!'
         icon = 'SHOP'
-    d.text((450, 150), icon, fill='black')
-    d.text((450, 190), label, fill='black')
+    if 'help' in low or 'people' in low:
+        label = 'HELP OTHERS!'
+        icon = 'HEART'
+    d.text((450, 170), icon, fill='black')
+    d.text((450, 210), label, fill='black')
     d.text((20, 350), 'Tip: Save - Learn - Work - Invest', fill='gray')
-    d.text((20, 320), 'Whiteboard is Ready!', fill='green')
+    d.text((20, 330), 'Frame ' + str(idx+1) + ' / ' + str(len(all_words)), fill='green')
     return img
 
 if btn:
@@ -84,33 +84,33 @@ if btn:
             st.code(final_prompt)
         if gen_video:
             if not gen_script and script_input.strip() == '':
-                st.warning('You chose WHITEBOARD but you have no script.')
+                st.warning('You chose VIDEO but you have no script.')
             else:
                 video_script = final_script if gen_script else script_input
-                st.markdown('### YOUR WHITEBOARD')
+                st.markdown('### YOUR MOVING VIDEO')
                 words = video_script.split(' ')
-                pick = st.selectbox('Pick a word to see drawing', words)
-                img = draw_whiteboard(pick)
-                st.image(img, use_container_width=True)
-                st.success('Whiteboard Generated! Pick a word above to change drawing.')
-                st.markdown('### VOICE')
+                st.info('Wait 3 seconds - generating moving video...')
+                frames = []
+                for i, wd in enumerate(words):
+                    if i % 3 == 0:
+                        f = make_frame(wd, i, words)
+                        frames.append(f)
+                gif_buf = io.BytesIO()
+                frames[0].save(gif_buf, format='GIF', save_all=True, append_images=frames[1:], duration=600, loop=0)
+                gif_buf.seek(0)
+                st.image(gif_buf, use_container_width=True, caption='Your Whiteboard Video - Gumagalaw na!')
+                st.download_button('DOWNLOAD VIDEO GIF', data=gif_buf, file_name='WhiteboardAI-Video.gif', mime='image/gif')
+                st.markdown('### VOICE - Pindutin PLAY')
                 try:
                     from gtts import gTTS
-                    lang = 'en'
-                    if 'UK' in voice_lang:
-                        lang = 'en'
-                    tts = gTTS(text=video_script, lang=lang, slow=False)
+                    tts = gTTS(text=video_script, lang='en', slow=False)
                     buf = io.BytesIO()
                     tts.write_to_fp(buf)
                     buf.seek(0)
                     st.audio(buf, format='audio/mp3')
                     st.download_button('DOWNLOAD VOICE MP3', data=buf, file_name='WhiteboardAI-Voice.mp3', mime='audio/mp3')
+                    st.success('Voice Generated! Press PLAY above!')
                 except Exception as e:
-                    st.info('Voice is not available in cloud. Copy script and use CapCut TTS.')
-                    st.code(video_script)
-                buf2 = io.BytesIO()
-                img.save(buf2, format='PNG')
-                buf2.seek(0)
-                st.download_button('DOWNLOAD WHITEBOARD IMAGE', data=buf2, file_name='WhiteboardAI.png', mime='image/png')
+                    st.error('Voice failed. Check requirements.txt has gTTS. Error: ' + str(e))
         if not gen_script and not gen_prompt and not gen_video:
             st.warning('Please check at least one.')
